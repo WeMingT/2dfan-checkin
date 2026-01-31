@@ -105,7 +105,10 @@ flaresolverr_checkin.py    # FlareSolverr + WARP 签到
 api.py                     # API 签到，封装 HTTP 请求
 recaptcha.py               # 验证码接口抽象和 EzCaptcha 实现
 notify.py                  # 邮件通知模块
-docs/FLARESOLVERR_SETUP.md # FlareSolverr VPS 部署指南（含 cron 和邮件配置）
+docs/
+├── FLARESOLVERR_SETUP.md  # FlareSolverr VPS 部署指南
+├── CRON_SETUP.md          # Cron 定时签到配置
+└── EMAIL_NOTIFY.md        # 邮件通知配置
 ```
 
 ### 核心流程

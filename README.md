@@ -58,6 +58,8 @@ WARP_PROXY=socks5://127.0.0.1:40000  # 可选，默认值
 
 需要在 VPS 上部署 FlareSolverr 和 Cloudflare WARP，详见 [部署指南](docs/FLARESOLVERR_SETUP.md)。
 
+**定时签到**：配置 Cron 实现每日自动签到，详见 [Cron 配置](docs/CRON_SETUP.md)。
+
 ### API 模式（付费）
 
 使用验证码服务绕过 Turnstile 验证，支持 EzCaptcha 和 YesCaptcha。
@@ -105,7 +107,7 @@ docker run --env-file .env 2dfan-checkin
 
 ## 邮件通知
 
-签到完成后自动发送结果通知。配置以下环境变量启用：
+签到完成后自动发送结果通知，详见 [邮件通知配置](docs/EMAIL_NOTIFY.md)。
 
 ```env
 SMTP_SERVER=smtp.qq.com
@@ -114,11 +116,6 @@ SMTP_USER=your@qq.com
 SMTP_PASS=smtp授权码
 NOTIFY_EMAIL=receive@email.com
 ```
-
-通知内容示例：
-- 签到成功：`用户 123456: 签到成功，累计 100 天，连续 15 天`
-- 今日已签到：`用户 123456: 今日已签到`
-- 签到失败：`用户 123456: Cookie 已失效`
 
 ## 补充说明
 
