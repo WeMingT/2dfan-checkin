@@ -165,6 +165,84 @@ class EzCaptchaImpl(CaptchaInterface):
 
     
 
+class YesCaptchaImpl(CaptchaInterface):
+    """YesCaptcha 验证码服务实现"""
+
+    def __init__(self, use_cn_node: bool = False) -> None:
+        super().__init__()
+        self.client_key = os.environ.get("YESCAPTCHA_CLIENT_KEY", default=None)
+        if self.client_key is None:
+            raise EnvironmentError("缺少环境变量 YESCAPTCHA_CLIENT_KEY")
+        self.api_base = "https://cn.yescaptcha.com" if use_cn_node else "https://api.yescaptcha.com"
+
+    def __create_task(
+            self,
+            websiteURL: str,
+            websiteKey: str,
+            task_type: str = 'TurnstileTaskProxyless',
+        ) -> str:
+        url = f"{self.api_base}/createTask"
+        payload = json.dumps({
+            "clientKey": self.client_key,
+            "task": {
+                "type": task_type,
+                "websiteURL": websiteURL,
+                "websiteKey": websiteKey,
+            }
+        })
+        headers = {'Content-Type': 'application/json'}
+        response = requests.post(url, headers=headers, data=payload)
+        data = json.loads(response.text)
+        if data.get('errorId', 0) != 0:
+            raise ValueError(data)
+        return data['taskId']
+
+    def __get_task_result(self, task_id: str) -> str:
+        url = f"{self.api_base}/getTaskResult"
+        payload = json.dumps({
+            "clientKey": self.client_key,
+            "taskId": task_id
+        })
+        headers = {'Content-Type': 'application/json'}
+        response = requests.post(url, headers=headers, data=payload)
+        data = json.loads(response.text)
+        if data.get('errorId', 0) != 0:
+            raise ValueError(data)
+        if data['status'] == 'processing':
+            print('.', end='')
+            time.sleep(3)
+            return self.__get_task_result(task_id)
+        elif data['status'] == 'ready':
+            print('done')
+            return data['solution']['token']
+        else:
+            raise ValueError(data)
+
+    def cap(
+            self,
+            websiteURL: str,
+            websiteKey: str,
+            pageAction: str = '',
+            type: str = 'ReCaptchaV3TaskProxyless',
+            isInvisible: bool = False,
+        ) -> str:
+        task_id = self.__create_task(websiteURL, websiteKey, task_type=type)
+        print('wait cap', end='')
+        result = self.__get_task_result(task_id)
+        return result
+
+    def tft(
+            self,
+            websiteURL: str,
+            websiteKey: str,
+            rqData: dict = {},
+        ) -> str:
+        task_id = self.__create_task(websiteURL, websiteKey, task_type='TurnstileTaskProxyless')
+        print('wait tft', end='')
+        result = self.__get_task_result(task_id)
+        return result
+
+
 if __name__ == '__main__':
     ez = EzCaptchaImpl()
     cap = CloudFlareTurnstileTask.create(

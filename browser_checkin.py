@@ -51,7 +51,10 @@ class BrowserCheckin:
         options.add_argument('--disable-dev-shm-usage')
         options.add_argument('--disable-gpu')
         options.add_argument('--window-size=1920,1080')
-        # 自动检测 Chrome 版本并下载对应的 driver
+        # 可通过环境变量 CHROME_VERSION 指定版本，否则自动检测
+        chrome_version = os.environ.get('CHROME_VERSION')
+        if chrome_version:
+            return uc.Chrome(options=options, version_main=int(chrome_version))
         return uc.Chrome(options=options)
 
     def _wait_for_cloudflare(self, timeout: int = 180) -> bool:

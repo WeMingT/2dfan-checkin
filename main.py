@@ -24,27 +24,66 @@ else:
 if __name__ == '__main__':
     print(f"begin checkin (mode: {checkin_mode}, headless: {headless})")
 
+    # 收集签到结果用于通知
+    results: list[tuple[str, any]] = []
+
     if checkin_mode == 'browser':
         from browser_checkin import browser_checkin
         for key in session_map.keys():
             session = session_map[key]
             result = browser_checkin(key, session, headless=headless)
+            results.append((key, result))
             print('session:', session[:3], '签到结果:', result.__dict__)
 
     elif checkin_mode == 'api':
         from api import User
-        from recaptcha import EzCaptchaImpl
+        from recaptcha import EzCaptchaImpl, YesCaptchaImpl
+
+        # 选择验证码服务商
+        captcha_provider = os.environ.get('CAPTCHA_PROVIDER', 'ezcaptcha').lower()
+        if captcha_provider == 'yescaptcha':
+            use_cn = os.environ.get('YESCAPTCHA_USE_CN', 'false').lower() in ('true', '1', 'yes')
+            captcha = YesCaptchaImpl(use_cn_node=use_cn)
+            print(f"使用 YesCaptcha 服务 ({'国内节点' if use_cn else '国际节点'})")
+        else:
+            captcha = EzCaptchaImpl()
+            print("使用 EzCaptcha 服务")
+
         for key in session_map.keys():
             session = session_map[key]
-            user = User(key, session, EzCaptchaImpl())
+            user = User(key, session, captcha)
             if http_proxy:
                 user.session.proxies.update({
                     'http': http_proxy,
                     'https': http_proxy,
                 })
-            print('session:', session[:3], '签到结果:', user.checkin().__dict__)
+            result = user.checkin()
+            results.append((key, result))
+            print('session:', session[:3], '签到结果:', result.__dict__)
+
+    elif checkin_mode == 'flaresolverr':
+        from flaresolverr_checkin import flaresolverr_checkin
+        flaresolverr_url = os.environ.get('FLARESOLVERR_URL')
+        if not flaresolverr_url:
+            raise EnvironmentError("FlareSolverr 模式需要设置 FLARESOLVERR_URL 环境变量")
+        warp_proxy = os.environ.get('WARP_PROXY', 'socks5://127.0.0.1:40000')
+        print(f"FlareSolverr URL: {flaresolverr_url}")
+        print(f"WARP Proxy: {warp_proxy}")
+        for key in session_map.keys():
+            session = session_map[key]
+            result = flaresolverr_checkin(key, session, flaresolverr_url, warp_proxy)
+            results.append((key, result))
+            print('session:', session[:3], '签到结果:', result.__dict__)
 
     else:
-        raise ValueError(f"不支持的签到模式: {checkin_mode}，请使用 'browser' 或 'api'")
+        raise ValueError(f"不支持的签到模式: {checkin_mode}，请使用 'browser'、'api' 或 'flaresolverr'")
 
     print("finish checkin")
+
+    # 发送邮件通知（如果配置了 SMTP）
+    if os.environ.get('SMTP_SERVER') and results:
+        from notify import send_checkin_notification
+        if send_checkin_notification(results):
+            print("邮件通知已发送")
+        else:
+            print("邮件通知发送失败")
