@@ -1,5 +1,17 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+- 代理候选列表与探测/请求失败的细化日志，提升 WARP 排障可读性。
+- FlareSolverr 远程部署的高风险配置提示（WARP 仅本地监听时提醒）。
+- 文档更新：README、docs/FLARESOLVERR_SETUP.md 增加 "connection to proxy closed" 排障提示；资产文件更新域名列表与 403 记录。
+
+### Fixed
+- （无）
+
+---
+
 ## [0.3.0] - 2026-01-31
 
 ### Added

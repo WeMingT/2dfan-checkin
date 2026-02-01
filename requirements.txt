@@ -3,3 +3,4 @@ beautifulsoup4~=4.12.3
 python-dotenv
 undetected-chromedriver
 setuptools
+curl_cffi>=0.7.0

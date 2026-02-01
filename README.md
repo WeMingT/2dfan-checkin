@@ -53,10 +53,19 @@ CHECKIN_MODE=browser
 ```env
 CHECKIN_MODE=flaresolverr
 FLARESOLVERR_URL=http://VPS_IP:8191/v1
-WARP_PROXY=socks5://127.0.0.1:40000  # 可选，默认值
+WARP_PROXY=socks5://127.0.0.1:40000  # 默认值（仅本地可用）
+WARP_PUBLIC_PROXY=socks5://your.vps.ip:40000  # 推荐，curl_cffi 直接访问的远程 WARP
+WARP_PROXY_PROBE_TIMEOUT=3  # 可选，探测超时时间（秒）
 ```
 
-需要在 VPS 上部署 FlareSolverr 和 Cloudflare WARP，详见 [部署指南](docs/FLARESOLVERR_SETUP.md)。
+> 如果 FlareSolverr 运行在 VPS，而 curl_cffi 在本地或 GitHub Actions，必须暴露 WARP 端口或通过 `ssh -L 40000:127.0.0.1:40000 user@vps` 创建隧道，否则 `cf_clearance` 无法复用。若出现 `connection to proxy closed`，优先检查 warp-svc 监听与端口可达性。
+
+需要在 VPS 上部署 FlareSolverr 和 Cloudflare WARP，并确认：
+1. `warp-svc` 监听远程地址 (`--listen=0.0.0.0:40000`) 或建立 SSH 隧道；
+2. 将暴露后的地址写入 `WARP_PUBLIC_PROXY`；
+3. 通过 `curl --socks5 socks5://your.vps.ip:40000 https://www.cloudflare.com/cdn-cgi/trace` 验证出口 IP。
+
+详见 [部署指南](docs/FLARESOLVERR_SETUP.md)，该指南包含暴露 WARP 端口、SSH 隧道与排障操作。
 
 **定时签到**：配置 Cron 实现每日自动签到，详见 [Cron 配置](docs/CRON_SETUP.md)。
 
@@ -92,7 +101,10 @@ docker run --env-file .env 2dfan-checkin
 | `SESSION_MAP` | 是 | JSON 格式的用户映射，如 `{"user_id": "cookie_value"}` |
 | `CHECKIN_MODE` | 否 | 签到模式：`browser`（默认）、`flaresolverr` 或 `api` |
 | `FLARESOLVERR_URL` | flaresolverr模式 | FlareSolverr 服务地址，如 `http://IP:8191/v1` |
-| `WARP_PROXY` | 否 | WARP 代理地址，默认 `socks5://127.0.0.1:40000` |
+| `WARP_PROXY` | 否 | WARP 代理地址，默认 `socks5://127.0.0.1:40000`（仅本地可用） |
+| `WARP_PUBLIC_PROXY` | 否 | curl_cffi 可直接访问的远程 WARP 代理，确保与 FlareSolverr 共用出口 IP |
+| `WARP_PROXY_PROBE_TIMEOUT` | 否 | WARP 代理连通性探测超时（秒，默认 3） |
+| `WARP_REMOTE_PROXY` | 否 | 已弃用，改用 `WARP_PUBLIC_PROXY` |
 | `CAPTCHA_PROVIDER` | 否 | 验证码服务商：`ezcaptcha`（默认）或 `yescaptcha` |
 | `EZCAPTCHA_CLIENT_KEY` | api模式 | EzCaptcha API 密钥 |
 | `YESCAPTCHA_CLIENT_KEY` | api模式 | YesCaptcha API 密钥 |

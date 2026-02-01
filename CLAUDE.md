@@ -42,6 +42,8 @@ CHECKIN_MODE=browser
 # FlareSolverr 模式配置
 FLARESOLVERR_URL=http://VPS_IP:8191/v1
 WARP_PROXY=socks5://127.0.0.1:40000  # 默认值
+WARP_PUBLIC_PROXY=socks5://公网可访问的地址:40000  # 当 curl_cffi 运行在本地或远程不同主机时指定
+WARP_PROXY_PROBE_TIMEOUT=3  # 可选，代理连通性探测超时时间（秒）
 
 # API 模式 - 验证码服务商选择 (ezcaptcha 或 yescaptcha，默认 ezcaptcha)
 CAPTCHA_PROVIDER=ezcaptcha
@@ -84,6 +86,9 @@ docker run --env-file .env 2dfan-checkin
 | `CHECKIN_MODE` | 否 | 签到模式：`browser`（默认）、`flaresolverr` 或 `api` |
 | `FLARESOLVERR_URL` | flaresolverr模式 | FlareSolverr 服务地址，如 `http://IP:8191/v1` |
 | `WARP_PROXY` | 否 | WARP 代理地址，默认 `socks5://127.0.0.1:40000` |
+| `WARP_PUBLIC_PROXY` | 否 | (推荐) curl_cffi 可直接访问的远程 WARP 代理地址，如 `socks5://公网IP:40000` |
+| `WARP_PROXY_PROBE_TIMEOUT` | 否 | 代理连通性探测超时（秒，默认 3） |
+| `WARP_REMOTE_PROXY` | 否 | 已弃用，请改用 `WARP_PUBLIC_PROXY` |
 | `CAPTCHA_PROVIDER` | 否 | 验证码服务商：`ezcaptcha`（默认）或 `yescaptcha` |
 | `EZCAPTCHA_CLIENT_KEY` | api模式 | EzCaptcha API 密钥 |
 | `YESCAPTCHA_CLIENT_KEY` | api模式 | YesCaptcha API 密钥 |
@@ -137,6 +142,18 @@ docs/
    - 等待 Turnstile 自动验证完成（真实浏览器，无需验证码服务）
    - POST 提交签到表单到 `/checkins`
    - 销毁浏览器会话
+
+#### WARP 代理暴露与排障
+
+- WARP 官方客户端默认仅绑定 `127.0.0.1:40000`，当 curl_cffi 与 FlareSolverr 不在同一台主机时，必须通过 **SSH 隧道**（`ssh -L 40000:127.0.0.1:40000 user@vps`）或将 `warp-svc` 设置为 `--listen=0.0.0.0:40000` 才能被访问。
+- 将暴露后的地址写入 `WARP_PUBLIC_PROXY`（如 `socks5://your.vps.ip:40000`），程序会优先使用该代理并在启动前进行连通性检测，失败会给出“远程 WARP 未开放端口”提示。
+- 可使用 `curl --socks5 socks5://your.vps.ip:40000 https://www.cloudflare.com/cdn-cgi/trace` 验证隧道是否正常；如需限制探测超时，可配置 `WARP_PROXY_PROBE_TIMEOUT`。
+- 若未能使用与 FlareSolverr 相同的出口 IP，`cf_clearance` 将失效导致签到 POST 返回 403。若必须临时回退到 `HTTP_PROXY`/直连，注意日志中的 WARN 并尽快恢复远程 WARP。
+- 新的日志提示示例：
+  - `自定义 WARP 代理: 连通性探测失败` → 说明远程端口未开放或防火墙拦截。
+  - `连接到代理被关闭 / connection to proxy closed` → 说明代理端口被中断或未正确监听。
+  - `HTTP_PROXY: 该代理出口 IP 可能与 FlareSolverr 不一致` → 当前正在使用兜底代理，若收到 403，需要暴露 WARP。
+  - `提示: FlareSolverr 运行在远程主机，但 WARP_PROXY 仅监听本地` → 应暴露 WARP 或设置 SSH 隧道。
 
 #### API 模式
 

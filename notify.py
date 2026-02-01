@@ -82,22 +82,34 @@ def build_notification(results: list[tuple[str, any]]) -> tuple[str, str]:
     Returns:
         (subject, body) 元组
     """
-    success_count = sum(
+    # 新签到成功：有累计天数的才算真正成功
+    new_success_count = sum(
         1 for _, r in results
         if hasattr(r, 'checkins_count') and r.checkins_count is not None and r.checkins_count > 0
     )
+    # 今日已签到：error 中包含"已签到"
     already_count = sum(
         1 for _, r in results
         if hasattr(r, 'error') and r.error and '已签到' in r.error
     )
     total_count = len(results)
+    failed_count = total_count - new_success_count - already_count
 
-    if success_count + already_count == total_count:
+    # 根据签到情况确定邮件主题
+    if new_success_count == total_count:
+        # 所有用户都是新签到成功
         subject = "[2dfan] 签到成功"
-    elif success_count == 0 and already_count == 0:
+    elif new_success_count > 0 and failed_count == 0:
+        # 有新签到成功，没有失败（可能有已签到）
+        subject = f"[2dfan] 签到成功 ({new_success_count}/{total_count})"
+    elif already_count == total_count:
+        # 所有用户都是今日已签到（明确区分）
+        subject = "[2dfan] 今日已签到"
+    elif failed_count > 0:
+        # 有失败的情况
         subject = "[2dfan] 签到失败"
     else:
-        subject = f"[2dfan] 签到部分成功 ({success_count}/{total_count})"
+        subject = "[2dfan] 签到结果"
 
     body_lines = [format_checkin_result(uid, r) for uid, r in results]
     body = "\n".join(body_lines)
