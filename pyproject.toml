@@ -1,0 +1,10 @@
+[project]
+name = "2dfan-local-checkin"
+version = "0.1.0"
+description = "2dfan.com auto check-in with nodriver"
+requires-python = ">=3.11"
+dependencies = [
+    "nodriver",
+    "opencv-python>=4.13.0.92",
+    "python-dotenv>=1.0.0",
+]
