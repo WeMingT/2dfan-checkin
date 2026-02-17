@@ -1,10 +1,15 @@
 [project]
-name = "2dfan-local-checkin"
+name = "2dfan-checkin"
 version = "0.1.0"
-description = "2dfan.com auto check-in with nodriver"
+description = "2dfan.com 自动签到工具，基于 nodriver 本地浏览器自动化"
 requires-python = ">=3.11"
+license = "MIT"
+authors = [{ name = "Ming Wei" }]
 dependencies = [
     "nodriver",
     "opencv-python>=4.13.0.92",
     "python-dotenv>=1.0.0",
 ]
+
+[project.urls]
+Repository = "https://github.com/WeMingT/2dfan-checkin"
